@@ -865,6 +865,10 @@ Caller-owned readable content and output buffers allow bounded hashing and range
 reads while Storage manages private Host files for overflow beyond preparation
 memory budgets. Small resources and the default iPodDB buffers remain in memory.
 See [ADR-0117](adr/0117-spill-prepared-library-content-to-host-storage.md).
+Dataset 3 is authoritative for Playlist relationships. Library preparation makes
+dataset 2 agree before and after requested edits, preserving flat Podcast Episodes
+there. Repairs appear in Review even without semantic edits; reparsed output must
+match before publication (ADR-0223).
 The Application Layer exposes background Review Changes with revision checks,
 grouped diagnostics, and cancellation. Physical Sync remains separate. See
 [Library contract](library-contract.md), [Library writing](library-writing.md),
@@ -1510,6 +1514,10 @@ entries while checking directory identity. Inspection progress follows completio
 order, and preparation reports reading, inspecting, converting, and verifying.
 Artwork extraction streams the enclosing media, and FFprobe diagnostics alone do
 not reject successful structured output. See ADR-0084.
+FFmpeg runs strictly first; only an undecodable source packet earns a lenient
+second pass whose skipped packets become a Track warning. Converted output must
+match the source duration, copied audio (including stream-copy remuxes) must decode
+for its reported length, and iOpenPod's own encoder output is always verified strictly.
 
 Host path validation applies trailing-period, trailing-space, and reserved-name
 restrictions only on Windows. POSIX album folders such as `Kendrick Lamar/DAMN.`
@@ -2061,8 +2069,9 @@ time and the input draft's saved Playlist memberships; unsupported rules and fir
 preserved. No-change Sync also reaches this step. See ADR-0142.
 The request identifies evaluated retained live Smart Playlists. iPodDB reconciles
 their matching native counterparts even when only a noncanonical copy has stale
-membership, preserving per-copy occurrence metadata and blocking definition
-conflicts. Default no-op serialization remains byte-exact. See ADR-0213.
+membership, preserving per-copy occurrence metadata (ADR-0213). Dataset-2
+definition conflicts follow dataset 3 under ADR-0223. Pure serialization remains
+byte-exact; preparation reports and reconciles counterpart differences.
 Sync also carries an explicit database refresh intent. SQLite targets regenerate
 their companion artifacts under ADR-0147; non-SQLite targets with Tracks rebuild
 retained sort-4 Albums indexes under ADR-0148 and ADR-0194. A retained index may
@@ -3031,7 +3040,7 @@ exact-theme setting, so Auto/System mode selects the configured palette for each
 family without conflating Host appearance with palette identity. Light choices are
 Porcelain, Catppuccin Latte, Dune Plover, and Sea Glass. Dark choices are Slate,
 Original iOpenPod, Catppuccin Frappé, Catppuccin Macchiato, Catppuccin Mocha, Gravity,
-Northern Lights, and Orchid. Porcelain and Slate remain the defaults. The Original
+Northern Lights, Orchid, and Tech. Porcelain and Slate remain the defaults. The Original
 iOpenPod palettes are translated into fixed semantic tokens with contrast-safe
 interaction states; they do not require a runtime theme catalog or the Original
 project.

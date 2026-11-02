@@ -73,6 +73,7 @@ class DarkTheme(StrEnum):
     GRAVITY = "gravity"
     NORTHERN_LIGHTS = "northern-lights"
     ORCHID = "orchid"
+    TECH = "tech"
 
 
 @dataclass(frozen=True, slots=True)
@@ -171,6 +172,12 @@ APPEARANCE_DARK_THEME = SettingDefinition[str](
 
 COLORFUL_MODE = SettingDefinition[bool](
     key="appearance/colorful-mode",
+    value_type=bool,
+    default=False,
+)
+
+ITUNES_107_ARTWORK = SettingDefinition[bool](
+    key="appearance/itunes-107-artwork",
     value_type=bool,
     default=False,
 )

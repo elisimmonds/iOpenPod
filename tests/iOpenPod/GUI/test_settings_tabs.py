@@ -194,6 +194,7 @@ def test_appearance_lists_and_applies_every_theme_without_retranslation_reset(
             "Gravity",
             "Northern Lights",
             "Orchid",
+            "Tech",
         ]
         for theme in (*LightTheme, *DarkTheme):
             if isinstance(theme, LightTheme):
@@ -220,7 +221,7 @@ def test_appearance_lists_and_applies_every_theme_without_retranslation_reset(
             assert control.currentData() == theme.value
             assert changes.count() == 0
         assert light.currentData() == LightTheme.SEA_GLASS.value
-        assert dark.currentData() == DarkTheme.ORCHID.value
+        assert dark.currentData() == DarkTheme.TECH.value
     finally:
         page.close()
 
@@ -424,6 +425,12 @@ def test_about_displays_license_and_community_credits(context: AppContext) -> No
             "dotm5",
             "Genius-Mix-Research",
             "native Genius Data",
+            "Olsro",
+            "organizing and preserving iPod click wheel games",
+            "iPod Clickwheel Games Preservation Project",
+            "iOpenPod's game binary downloads are sourced from this repository.",
+            'href="https://github.com/Olsro"',
+            'href="https://github.com/Olsro/ipodclickwheelgamespreservationproject"',
             "https://github.com/dstaley/hashab",
             "https://github.com/dotm5",
             "https://github.com/dotm5/Genius-Mix-Research",

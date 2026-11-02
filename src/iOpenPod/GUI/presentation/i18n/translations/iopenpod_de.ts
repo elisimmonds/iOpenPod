@@ -555,14 +555,6 @@
         <translation>iPod wiederherstellen</translation>
     </message>
     <message>
-        <source>Your first backup starts here</source>
-        <translation>Hier beginnt Ihr erstes Backup</translation>
-    </message>
-    <message>
-        <source>Connect your iPod to save a copy you can restore later. Have backups from Original iOpenPod? Choose Import Backups.</source>
-        <translation>Schließen Sie Ihren iPod an, um eine Kopie für eine spätere Wiederherstellung zu sichern. Haben Sie Backups aus Original iOpenPod? Wählen Sie „Backups importieren“.</translation>
-    </message>
-    <message>
         <source>Back Up Now</source>
         <translation>Jetzt sichern</translation>
     </message>
@@ -613,10 +605,6 @@
         <translation>iPod</translation>
     </message>
     <message>
-        <source>Save a copy of your iPod to come back to later.</source>
-        <translation>Sichern Sie eine Kopie Ihres iPods, die Sie später wiederherstellen können.</translation>
-    </message>
-    <message>
         <source>Connect this iPod to back it up or restore a saved backup.</source>
         <translation>Schließen Sie diesen iPod an, um ihn zu sichern oder ein gespeichertes Backup wiederherzustellen.</translation>
     </message>
@@ -639,14 +627,6 @@
     <message>
         <source>You&apos;ll be asked to confirm this backup belongs to your iPod.</source>
         <translation>Sie werden gebeten zu bestätigen, dass dieses Backup zu Ihrem iPod gehört.</translation>
-    </message>
-    <message>
-        <source>No backups yet. Make your first copy with Back Up Now.</source>
-        <translation>Noch keine Backups vorhanden. Erstellen Sie Ihre erste Kopie mit „Jetzt sichern“.</translation>
-    </message>
-    <message>
-        <source>No backups yet. Connect this iPod to make your first copy.</source>
-        <translation>Noch keine Backups vorhanden. Schließen Sie diesen iPod an, um Ihre erste Kopie zu erstellen.</translation>
     </message>
     <message>
         <source>Restore an Imported Backup?</source>
@@ -744,6 +724,30 @@
     <message>
         <source>Could Not Open Backup Folder</source>
         <translation>Backup-Ordner konnte nicht geöffnet werden</translation>
+    </message>
+    <message>
+        <source>No backups found</source>
+        <translation>Keine Backups gefunden</translation>
+    </message>
+    <message>
+        <source>No backups are saved in this location. Use Import Backups to import an Original iOpenPod archive.</source>
+        <translation>An diesem Speicherort sind keine Backups gespeichert. Verwenden Sie „Backups importieren“, um ein Archiv aus Original iOpenPod zu importieren.</translation>
+    </message>
+    <message>
+        <source>This iPod is connected.</source>
+        <translation>Dieser iPod ist verbunden.</translation>
+    </message>
+    <message>
+        <source>No backups saved for this iPod.</source>
+        <translation>Für diesen iPod sind keine Backups gespeichert.</translation>
+    </message>
+    <message>
+        <source>Loading backups…</source>
+        <translation>Backups werden geladen…</translation>
+    </message>
+    <message>
+        <source>Unable to load backups. Select Refresh to try again.</source>
+        <translation>Backups konnten nicht geladen werden. Wählen Sie „Aktualisieren“, um es erneut zu versuchen.</translation>
     </message>
 </context>
 <context>
@@ -6098,6 +6102,14 @@ Prüfen Sie ihre Regeln mit „Bearbeiten“.</translation>
         <translation>Hintergründe der Sammlungskarten und die Titelleiste der Titelliste passend zum jeweiligen Bild einfärben.</translation>
     </message>
     <message>
+        <source>iTunes 10.7 Style artwork</source>
+        <translation>Gerätebilder im Stil von iTunes 10.7</translation>
+    </message>
+    <message>
+        <source>Use classic angled device artwork where available, including managed iPod drive icons.</source>
+        <translation>Klassische Gerätebilder in Schrägansicht verwenden, sofern verfügbar, auch für verwaltete iPod-Laufwerkssymbole.</translation>
+    </message>
+    <message>
         <source>Player position</source>
         <translation>Position des Players</translation>
     </message>
@@ -6199,7 +6211,7 @@ Prüfen Sie ihre Regeln mit „Bearbeiten“.</translation>
     </message>
     <message>
         <source>&lt;p&gt;iOpenPod is free software under {license}. You may modify and redistribute it under those terms. It comes without any warranty.&lt;/p&gt;&lt;p&gt;Special thanks to {hashab} for the HASHAB WebAssembly implementation used by iOpenPod.&lt;/p&gt;&lt;p&gt;An honorary thank-you to the {libgpod} and {gtkpod} contributors for their pioneering iPod support, documentation, and the references this project learned from.&lt;/p&gt;&lt;p&gt;Thanks to {dotm5} and their {genius_research} repository for helping us understand native Genius Data.&lt;/p&gt;&lt;p&gt;Application icon by DJShott, used with permission.&lt;/p&gt;</source>
-        <translation>&lt;p&gt;iOpenPod ist freie Software unter {license}. Sie dürfen die Software unter diesen Bedingungen ändern und weitergeben. Sie wird ohne jegliche Gewährleistung bereitgestellt.&lt;/p&gt;&lt;p&gt;Besonderer Dank gilt {hashab} für die von iOpenPod verwendete HASHAB-WebAssembly-Implementierung.&lt;/p&gt;&lt;p&gt;Ein besonderer Dank gilt auch den Mitwirkenden von {libgpod} und {gtkpod} für ihre Pionierarbeit bei der iPod-Unterstützung, ihre Dokumentation und die Grundlagen, von denen dieses Projekt gelernt hat.&lt;/p&gt;&lt;p&gt;Vielen Dank an {dotm5} und das Repository {genius_research}, das uns beim Verständnis nativer Genius-Daten geholfen hat.&lt;/p&gt;&lt;p&gt;Das Anwendungssymbol stammt von DJShott und wird mit Genehmigung verwendet.&lt;/p&gt;</translation>
+        <translation type="vanished">&lt;p&gt;iOpenPod ist freie Software unter {license}. Sie dürfen die Software unter diesen Bedingungen ändern und weitergeben. Sie wird ohne jegliche Gewährleistung bereitgestellt.&lt;/p&gt;&lt;p&gt;Besonderer Dank gilt {hashab} für die von iOpenPod verwendete HASHAB-WebAssembly-Implementierung.&lt;/p&gt;&lt;p&gt;Ein besonderer Dank gilt auch den Mitwirkenden von {libgpod} und {gtkpod} für ihre Pionierarbeit bei der iPod-Unterstützung, ihre Dokumentation und die Grundlagen, von denen dieses Projekt gelernt hat.&lt;/p&gt;&lt;p&gt;Vielen Dank an {dotm5} und das Repository {genius_research}, das uns beim Verständnis nativer Genius-Daten geholfen hat.&lt;/p&gt;&lt;p&gt;Das Anwendungssymbol stammt von DJShott und wird mit Genehmigung verwendet.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>GPLv3 or later</source>
@@ -6264,6 +6276,10 @@ Prüfen Sie ihre Regeln mit „Bearbeiten“.</translation>
     <message>
         <source>Orchid</source>
         <translation>Orchid</translation>
+    </message>
+    <message>
+        <source>Tech</source>
+        <translation>Tech</translation>
     </message>
     <message>
         <source>Off</source>
@@ -6460,6 +6476,10 @@ Prüfen Sie ihre Regeln mit „Bearbeiten“.</translation>
     <message>
         <source>Select and copy this path if the folder does not open.</source>
         <translation>Markieren und kopieren Sie diesen Pfad, falls sich der Ordner nicht öffnet.</translation>
+    </message>
+    <message>
+        <source>&lt;p&gt;iOpenPod is free software under {license}. You may modify and redistribute it under those terms. It comes without any warranty.&lt;/p&gt;&lt;p&gt;Special thanks to {hashab} for the HASHAB WebAssembly implementation used by iOpenPod.&lt;/p&gt;&lt;p&gt;An honorary thank-you to the {libgpod} and {gtkpod} contributors for their pioneering iPod support, documentation, and the references this project learned from.&lt;/p&gt;&lt;p&gt;Thanks to {dotm5} and their {genius_research} repository for helping us understand native Genius Data.&lt;/p&gt;&lt;p&gt;Thanks to {olsro} for organizing and preserving iPod click wheel games through the {games_preservation}. iOpenPod&apos;s game binary downloads are sourced from this repository.&lt;/p&gt;&lt;p&gt;Application icon by DJShott, used with permission.&lt;/p&gt;</source>
+        <translation>&lt;p&gt;iOpenPod ist freie Software unter {license}. Sie dürfen die Software unter diesen Bedingungen ändern und weitergeben. Sie wird ohne jegliche Gewährleistung bereitgestellt.&lt;/p&gt;&lt;p&gt;Besonderer Dank gilt {hashab} für die von iOpenPod verwendete HASHAB-WebAssembly-Implementierung.&lt;/p&gt;&lt;p&gt;Ein besonderer Dank gilt auch den Mitwirkenden von {libgpod} und {gtkpod} für ihre Pionierarbeit bei der iPod-Unterstützung, ihre Dokumentation und die Grundlagen, von denen dieses Projekt gelernt hat.&lt;/p&gt;&lt;p&gt;Vielen Dank an {dotm5} und das Repository {genius_research}, das uns beim Verständnis nativer Genius-Daten geholfen hat.&lt;/p&gt;&lt;p&gt;Vielen Dank an {olsro} für die Organisation und Erhaltung von iPod-Click-Wheel-Spielen im Projekt {games_preservation}. iOpenPod bezieht die Spieldateien aus diesem Repository.&lt;/p&gt;&lt;p&gt;Das Anwendungssymbol stammt von DJShott und wird mit Genehmigung verwendet.&lt;/p&gt;</translation>
     </message>
     <message>
         <source>Open this folder manually: %1</source>
@@ -8053,10 +8073,6 @@ Playlists: %3</translation>
         <translation>iPod-Metadaten vereinheitlichen</translation>
     </message>
     <message>
-        <source>A little tidying for your Library. Keep names, album grouping, and sorting consistent on your iPod.</source>
-        <translation>Etwas Ordnung für Ihre Mediathek. Halten Sie Namen, Albumgruppierung und Sortierung auf Ihrem iPod einheitlich.</translation>
-    </message>
-    <message>
         <source>Track, artist, album, or tag value…</source>
         <translation>Titel, Künstler, Album oder Metadatenwert…</translation>
     </message>
@@ -8100,26 +8116,6 @@ Playlists: %3</translation>
         <source>Checking…</source>
         <translation>Wird geprüft…</translation>
     </message>
-    <message>
-        <source>Checking your Library…</source>
-        <translation>Ihre Mediathek wird geprüft…</translation>
-    </message>
-    <message>
-        <source>Tag changes: %1 · Tracks: %2</source>
-        <translation>Metadatenänderungen: %1 · Titel: %2</translation>
-    </message>
-    <message>
-        <source>Your tags are in good shape</source>
-        <translation>Ihre Metadaten sind in Ordnung</translation>
-    </message>
-    <message>
-        <source>Consistent tags, easier browsing</source>
-        <translation>Einheitliche Metadaten erleichtern das Stöbern</translation>
-    </message>
-    <message>
-        <source>Tailored to %1</source>
-        <translation>Auf %1 abgestimmt</translation>
-    </message>
     <message numerus="yes">
         <source>Apply all %Ln change(s)</source>
         <translation>
@@ -8147,60 +8143,56 @@ Playlists: %3</translation>
         </translation>
     </message>
     <message>
-        <source>Finding the finishing touches</source>
-        <translation>Letzte Verbesserungen werden gesucht</translation>
+        <source>Checking tags…</source>
+        <translation>Metadaten werden geprüft…</translation>
     </message>
     <message>
-        <source>Checking names, album grouping, and sort tags. You can keep browsing while we work.</source>
-        <translation>Namen, Albumgruppierung und Sortierangaben werden geprüft. Sie können währenddessen weiter stöbern.</translation>
+        <source>Checking names, album grouping, and sort tags.</source>
+        <translation>Namen, Albumgruppierung und Sortierangaben werden geprüft.</translation>
     </message>
     <message>
         <source>No matching changes</source>
         <translation>Keine passenden Änderungen</translation>
     </message>
     <message>
-        <source>Try another search or clear the filters to see every suggestion.</source>
-        <translation>Versuchen Sie eine andere Suche oder setzen Sie die Filter zurück, um alle Vorschläge anzuzeigen.</translation>
+        <source>Change the search or clear the filters to show all changes.</source>
+        <translation>Ändern Sie die Suche oder setzen Sie die Filter zurück, um alle Änderungen anzuzeigen.</translation>
     </message>
     <message>
-        <source>All tidy</source>
-        <translation>Alles aufgeräumt</translation>
+        <source>No changes needed</source>
+        <translation>Keine Änderungen erforderlich</translation>
     </message>
     <message>
-        <source>No tag changes are needed.</source>
-        <translation>Keine Metadatenänderungen erforderlich.</translation>
-    </message>
-    <message>
-        <source>Your Library is busy</source>
-        <translation>Ihre Mediathek ist beschäftigt</translation>
+        <source>Library in use</source>
+        <translation>Mediathek wird verwendet</translation>
     </message>
     <message>
         <source>Wait for the current operation to finish before checking tags.</source>
         <translation>Warten Sie, bis der aktuelle Vorgang abgeschlossen ist, bevor Sie die Metadaten prüfen.</translation>
     </message>
     <message>
-        <source>Choose an iPod to get started</source>
-        <translation>Wählen Sie einen iPod aus, um zu beginnen</translation>
+        <source>No iPod selected</source>
+        <translation>Kein iPod ausgewählt</translation>
     </message>
     <message>
-        <source>Load its Library to check for suggested tag changes.</source>
-        <translation>Laden Sie seine Mediathek, um vorgeschlagene Metadatenänderungen zu prüfen.</translation>
+        <source>Select an iPod and load its Library to check tags.</source>
+        <translation>Wählen Sie einen iPod aus und laden Sie seine Mediathek, um die Metadaten zu prüfen.</translation>
     </message>
     <message>
-        <source>We couldn&apos;t check your tags</source>
-        <translation>Ihre Metadaten konnten nicht geprüft werden</translation>
+        <source>Tag scan failed</source>
+        <translation>Metadatenprüfung fehlgeschlagen</translation>
     </message>
     <message>
         <source>Try scanning again.</source>
         <translation>Versuchen Sie die Suche erneut.</translation>
     </message>
     <message>
-        <source>Ready for a fresh look</source>
-        <translation>Bereit für eine neue Prüfung</translation>
+        <source>Ready to scan</source>
+        <translation>Bereit zur Prüfung</translation>
     </message>
     <message>
-        <source>Scan your Library to preview suggested tag changes.</source>
-        <translation>Durchsuchen Sie Ihre Mediathek, um vorgeschlagene Metadatenänderungen anzusehen.</translation>
+        <source>Scan the Library to review suggested tag changes.</source>
+        <translation>Prüfen Sie die Mediathek, um vorgeschlagene Metadatenänderungen anzuzeigen.</translation>
     </message>
 </context>
 <context>
@@ -10128,6 +10120,10 @@ Playlists: %3</translation>
         <translation>Die originale Albumreihenfolge des Sortiertyps 36 und Positionen der Hauptwiedergabeliste beibehalten.</translation>
     </message>
     <message>
+        <source>Make dataset 2 match the Playlists in dataset 3, retaining flat Podcast entries.</source>
+        <translation>Datenbestand 2 an die Wiedergabelisten in Datenbestand 3 angleichen und flache Podcast-Einträge beibehalten.</translation>
+    </message>
+    <message>
         <source>Manual</source>
         <translation>Manuell</translation>
     </message>
@@ -11874,6 +11870,10 @@ Playlists: %3</translation>
     <message>
         <source>On (raw {value})</source>
         <translation>Ein (Rohwert {value})</translation>
+    </message>
+    <message>
+        <source>Playlist datasets do not match the authoritative dataset 3.</source>
+        <translation>Die Wiedergabelisten-Datenbestände stimmen nicht mit dem maßgeblichen Datenbestand 3 überein.</translation>
     </message>
     <message>
         <source>Playlist {name} was preserved. {detail}</source>
