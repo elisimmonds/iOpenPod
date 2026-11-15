@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from collections import deque
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from contextlib import contextmanager, nullcontext
@@ -11,6 +12,7 @@ from copy import copy
 from dataclasses import dataclass, replace
 from pathlib import PurePosixPath
 from threading import Event, Lock
+from time import perf_counter
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Protocol
 
@@ -48,6 +50,8 @@ if TYPE_CHECKING:
     from iPodDB.library import LibrarySnapshot, PreparedLyrics, Track
     from storage import FileFingerprint, FilesystemSession
 
+
+logger = logging.getLogger(__name__)
 
 GENIUS_SAMPLE_RATE_HZ = 22_050
 MAX_GENIUS_AUDIO_SECONDS = 15 * 60
@@ -403,6 +407,7 @@ class GeniusAnalysisService:
         checkpoint = _session_checkpoint(session, checkpoint)
         should_skip = skip_requested or (lambda: False)
         checkpoint()
+        started = perf_counter()
         decoder = (
             self._decoder.for_analysis()
             if isinstance(self._decoder, FFmpegGeniusPCMDecoder)
@@ -453,6 +458,12 @@ class GeniusAnalysisService:
         stopped = Event()
         outcomes: dict[int, _AnalyzedTrack | GeniusAnalysisIssue] = {}
         pending: list[tuple[Track, _Source]] = []
+        device_read = _DeviceReadSlot()
+        cached = 0
+        analyzed = {False: 0, True: 0}
+        unavailable = 0
+        completed = 0
+        outcome_name = "stopped"
 
         def worker_checkpoint() -> None:
             checkpoint()
@@ -478,13 +489,25 @@ class GeniusAnalysisService:
                     pending.append((track, resolved))
                 else:
                     outcomes[track.track_id] = resolved
+                    cached += isinstance(resolved, _AnalyzedTrack)
+            device_pending = sum(
+                isinstance(source.path, DevicePath) for _, source in pending
+            )
+            logger.info(
+                "Genius analysis started: tracks=%d, cached=%d, pending=%d, "
+                "host=%d, device=%d, workers=%d",
+                len(tracks),
+                cached,
+                len(pending),
+                len(pending) - device_pending,
+                device_pending,
+                self._workers,
+            )
             waiting = _AdmissionQueue(pending)
-            device_read = Lock()
             # Insertion order is admission order, which progress reports as active.
             running: dict[
                 Future[_AnalyzedTrack | GeniusAnalysisIssue], tuple[Track, bool]
             ] = {}
-            completed = 0
 
             def report(track: Track | None, starting: tuple[Track, ...] = ()) -> None:
                 active = (*(item for item, _ in running.values()), *starting)
@@ -554,15 +577,37 @@ class GeniusAnalysisService:
                                         outcome.source.key, outcome.profile
                                     )
                                 save()
+                                analyzed[on_device] += 1
+                            else:
+                                unavailable += 1
                             completed += 1
                             report(track)
                 except BaseException:
                     stopped.set()
                     raise
+            outcome_name = "skipped" if completed < len(pending) else "completed"
         finally:
-            # Successful earlier work survives a failed source. Cancellation is
-            # still propagated; checkpointed cache writes never mask it.
-            save(force=True)
+            try:
+                # Successful earlier work survives a failed source. Cancellation
+                # is still propagated; checkpointed cache writes never mask it.
+                save(force=True)
+            finally:
+                logger.info(
+                    "Genius analysis: %.3fs, outcome=%s, tracks=%d, cached=%d, "
+                    "analyzed=%d, host=%d, device=%d, unavailable=%d, "
+                    "not_analyzed=%d, workers=%d, device_read=%.3fs",
+                    perf_counter() - started,
+                    outcome_name,
+                    len(tracks),
+                    cached,
+                    analyzed[False] + analyzed[True],
+                    analyzed[False],
+                    analyzed[True],
+                    unavailable,
+                    len(pending) - completed,
+                    self._workers,
+                    device_read.seconds,
+                )
         profiles: dict[int, GeniusAudioProfile] = {}
         dependencies: dict[DevicePath, GeniusAnalysisDependency] = {}
         prepared_profiles: list[GeniusPreparedProfile] = []
@@ -673,7 +718,7 @@ class GeniusAnalysisService:
         session: FilesystemSession,
         decoder: GeniusPCMDecoder,
         checkpoint: Callable[[], None],
-        device_read: Lock,
+        device_read: _DeviceReadSlot,
     ) -> _AnalyzedTrack | GeniusAnalysisIssue:
         try:
             try:
@@ -684,7 +729,7 @@ class GeniusAnalysisService:
                         "Track exceeds the 15-minute acoustic analysis limit"
                     )
                 with (
-                    _holding(device_read, checkpoint)
+                    device_read.hold(checkpoint)
                     if isinstance(source.path, DevicePath)
                     else nullcontext()
                 ):
@@ -718,15 +763,25 @@ class GeniusAnalysisService:
             )
 
 
-@contextmanager
-def _holding(lock: Lock, checkpoint: Callable[[], None]) -> Generator[None]:
-    """Hold the device read slot; waiting for it stays cancellable."""
-    while not lock.acquire(timeout=_DEVICE_READ_POLL_SECONDS):
-        checkpoint()
-    try:
-        yield
-    finally:
-        lock.release()
+class _DeviceReadSlot:
+    """Serialize device reads and total the time spent reading."""
+
+    def __init__(self) -> None:
+        self._lock = Lock()
+        # Updated only while holding the slot; read after every worker stops.
+        self.seconds = 0.0
+
+    @contextmanager
+    def hold(self, checkpoint: Callable[[], None]) -> Generator[None]:
+        """Hold the slot; waiting for it stays cancellable."""
+        while not self._lock.acquire(timeout=_DEVICE_READ_POLL_SECONDS):
+            checkpoint()
+        started = perf_counter()
+        try:
+            yield
+        finally:
+            self.seconds += perf_counter() - started
+            self._lock.release()
 
 
 class PreparationStoppedError(RuntimeError):

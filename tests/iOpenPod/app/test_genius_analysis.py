@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import re
 import shutil
 import wave
 from concurrent.futures import ThreadPoolExecutor
@@ -783,6 +785,47 @@ def test_skip_requested_from_admission_progress_starts_no_reads(
     assert decoder.sources == []
     assert dict(result.profiles) == {}
     assert not result.issues
+
+
+@pytest.mark.parametrize("skipped", [False, True])
+def test_analysis_logs_counts_and_elapsed_time(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, skipped: bool
+) -> None:
+    root, _, session, snapshot = _device(tmp_path)
+    cache = AtomicHostFile(tmp_path / "profiles.json")
+    GeniusAnalysisService(cache, _Decoder(), profiler=_profile).analyze(
+        snapshot, session, checkpoint=_checkpoint
+    )
+    snapshot = _with_device_tracks(root, snapshot, (2, 3))
+    snapshot, media = _with_staged_tracks(tmp_path, snapshot, (4,))
+    skip = Event()
+    caplog.set_level(logging.INFO, logger="iOpenPod.app.genius_analysis")
+    caplog.clear()
+    GeniusAnalysisService(cache, _Decoder(), profiler=_profile, workers=4).analyze(
+        snapshot,
+        session,
+        media=media,
+        checkpoint=_checkpoint,
+        progress=lambda _: skip.set() if skipped else None,
+        skip_requested=skip.is_set,
+    )
+    started, finished = (record.getMessage() for record in caplog.records)
+    assert started == (
+        "Genius analysis started: tracks=4, cached=1, pending=3, host=1, device=2, "
+        "workers=4"
+    )
+    assert re.fullmatch(
+        r"Genius analysis: \d+\.\d{3}s, "
+        + (
+            "outcome=skipped, tracks=4, cached=1, analyzed=0, host=0, device=0, "
+            "unavailable=0, not_analyzed=3, "
+            if skipped
+            else "outcome=completed, tracks=4, cached=1, analyzed=3, host=1, "
+            "device=2, unavailable=0, not_analyzed=0, "
+        )
+        + r"workers=4, device_read=\d+\.\d{3}s",
+        finished,
+    )
 
 
 def test_skip_stops_active_and_waiting_work_and_keeps_completed_profiles(
