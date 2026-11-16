@@ -4511,6 +4511,10 @@ El calendario es de solo lectura porque no se ha podido confirmar la compatibili
         <translation>Problemas del análisis: {count}. Es posible que algunos archivos multimedia no estén disponibles.</translation>
     </message>
     <message>
+        <source>Scan issues: {count}. The scan&apos;s own cache had a problem; media is unaffected.</source>
+        <translation>Problemas del análisis: {count}. La propia caché del análisis tuvo un problema; los archivos multimedia no se ven afectados.</translation>
+    </message>
+    <message>
         <source>Show details</source>
         <translation>Mostrar detalles</translation>
     </message>
@@ -15967,6 +15971,14 @@ Playlists: %3</translation>
     <message>
         <source>Native Genius Mix authoring requires a supported Classic or SQLite target.</source>
         <translation>La creación de mezclas Genius nativas requiere un Classic compatible o un destino SQLite compatible.</translation>
+    </message>
+    <message>
+        <source>New scan results could not be encoded for the cache at {path}: {error} Files inspected this time will be inspected and fingerprinted again on the next scan. Media is unaffected; please report this issue.</source>
+        <translation>Los nuevos resultados del análisis no se pudieron codificar para la caché en {path}: {error} Los archivos inspeccionados esta vez se volverán a inspeccionar y a calcular su huella en el próximo análisis. Los archivos multimedia no se ven afectados; informa de este problema.</translation>
+    </message>
+    <message>
+        <source>New scan results could not be saved to {path}: {error} Files inspected this time will be inspected and fingerprinted again on the next scan. Make that folder writable and check its free space, then scan again.</source>
+        <translation>Los nuevos resultados del análisis no se pudieron guardar en {path}: {error} Los archivos inspeccionados esta vez se volverán a inspeccionar y a calcular su huella en el próximo análisis. Haz que esa carpeta permita escritura y comprueba su espacio libre; después, vuelve a analizar.</translation>
     </message>
     <message>
         <source>Phase · {detail} · {completed}/{total} tracks</source>

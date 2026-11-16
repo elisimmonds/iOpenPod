@@ -4511,6 +4511,10 @@ Der Kalender ist schreibgeschützt, da die Unterstützung für die Bearbeitung m
         <translation>Scan-Probleme: {count}. Einige Medien sind möglicherweise nicht verfügbar.</translation>
     </message>
     <message>
+        <source>Scan issues: {count}. The scan&apos;s own cache had a problem; media is unaffected.</source>
+        <translation>Scan-Probleme: {count}. Der Cache des Scans selbst hatte ein Problem; Medien sind nicht betroffen.</translation>
+    </message>
+    <message>
         <source>Show details</source>
         <translation>Details anzeigen</translation>
     </message>
@@ -15967,6 +15971,14 @@ Playlists: %3</translation>
     <message>
         <source>Native Genius Mix authoring requires a supported Classic or SQLite target.</source>
         <translation>Das Erstellen nativer Genius-Mixe erfordert einen unterstützten Classic oder ein unterstütztes SQLite-Ziel.</translation>
+    </message>
+    <message>
+        <source>New scan results could not be encoded for the cache at {path}: {error} Files inspected this time will be inspected and fingerprinted again on the next scan. Media is unaffected; please report this issue.</source>
+        <translation>Neue Scan-Ergebnisse konnten nicht für den Cache unter {path} kodiert werden: {error} Diesmal geprüfte Dateien werden beim nächsten Scan erneut geprüft und ihre Fingerabdrücke neu berechnet. Medien sind nicht betroffen; bitte melde dieses Problem.</translation>
+    </message>
+    <message>
+        <source>New scan results could not be saved to {path}: {error} Files inspected this time will be inspected and fingerprinted again on the next scan. Make that folder writable and check its free space, then scan again.</source>
+        <translation>Neue Scan-Ergebnisse konnten nicht in {path} gespeichert werden: {error} Diesmal geprüfte Dateien werden beim nächsten Scan erneut geprüft und ihre Fingerabdrücke neu berechnet. Mache diesen Ordner beschreibbar, prüfe den freien Speicherplatz und starte den Scan erneut.</translation>
     </message>
     <message>
         <source>Phase · {detail} · {completed}/{total} tracks</source>

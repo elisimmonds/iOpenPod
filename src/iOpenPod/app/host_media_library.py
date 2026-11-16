@@ -23,7 +23,7 @@ import mutagen
 from mutagen.flac import Picture
 from PIL import Image, ImageOps
 
-from iOpenPod.app.display_text import source_text
+from iOpenPod.app.display_text import exception_text, source_text
 from iOpenPod.app.host_media_fingerprint import (
     FpcalcError,
     FpcalcFingerprinter,
@@ -261,6 +261,16 @@ class HostMediaCacheStats:
 class HostMediaScanIssue:
     path: HostPath
     detail: str
+    # Empty for a media file problem. A named subject marks an issue about the
+    # scan itself, such as its cache, so the GUI does not present it as lost media.
+    subject: str = ""
+
+    @property
+    def concerns_media(self) -> bool:
+        return not self.subject
+
+
+CACHE_ISSUE_SUBJECT = "Host Media Scan Cache"
 
 
 @dataclass(frozen=True, slots=True)
@@ -852,6 +862,7 @@ class HostMediaScanner:
         self._cache_revision: tuple[int, int, int, int] | None = None
         self._cache_loaded = False
         self._cache_dirty = False
+        self._cache_store_error: Exception | None = None
 
     def scan(
         self,
@@ -1312,10 +1323,13 @@ class HostMediaScanner:
             "Building the Host Media Library…",
             cache_hits=reused,
         )
+        # Save before building the result so a failed save becomes a visible
+        # scan issue instead of a log line nobody reads.
+        self._store_cache(cached.values(), pending.folder_artwork)
         unique_records = _unique_records(records)
         result = _build_library(
             unique_records,
-            tuple(issues),
+            self._with_cache_issue(issues),
             HostMediaCacheStats(reused, inspected),
         )
         result = replace(
@@ -1333,7 +1347,6 @@ class HostMediaScanner:
             logger.info(
                 "Host Media Scan: %d further issues omitted", len(result.issues) - 50
             )
-        self._store_cache(cached.values(), pending.folder_artwork)
         _emit(
             progress,
             HostMediaScanStage.COMPLETE,
@@ -1395,15 +1408,21 @@ class HostMediaScanner:
         records.update(
             (_path_identity(record.path.path), record) for record in refreshed
         )
+        # Save before building the result so a failed save becomes a visible
+        # scan issue. Cancellation still publishes nothing to the cache.
+        checkpoint()
+        cached_records.update(records)
+        self._store_cache(cached_records.values(), folder_artwork.values())
+        checkpoint()
         updated = _build_library(
             tuple(records.values()),
-            library.issues,
+            self._with_cache_issue(library.issues),
             HostMediaCacheStats(
                 max(0, library.cache.reused - len(refreshed_paths)),
                 library.cache.inspected + len(refreshed_paths),
             ),
         )
-        updated = replace(
+        return replace(
             updated,
             approved_external_files=library.approved_external_files,
             rechecked_track_paths=(
@@ -1421,11 +1440,35 @@ class HostMediaScanner:
                 )
             ),
         )
-        checkpoint()
-        cached_records.update(records)
-        self._store_cache(cached_records.values(), folder_artwork.values())
-        checkpoint()
-        return updated
+
+    def _with_cache_issue(
+        self, issues: Iterable[HostMediaScanIssue]
+    ) -> tuple[HostMediaScanIssue, ...]:
+        """Replace any earlier cache issue with the latest save outcome."""
+        current = tuple(
+            issue for issue in issues if issue.subject != CACHE_ISSUE_SUBJECT
+        )
+        error = self._cache_store_error
+        if error is None or self._cache_file is None:
+            return current
+        path = Path(self._cache_file.path).absolute()
+        reason = exception_text(error) or type(error).__name__
+        if isinstance(error, (OSError, StorageError)):
+            detail = source_text(
+                "New scan results could not be saved to {path}: {error} Files inspected this time will be inspected and fingerprinted again on the next scan. Make that folder writable and check its free space, then scan again.",
+                path=str(path),
+                error=reason,
+            )
+        else:
+            detail = source_text(
+                "New scan results could not be encoded for the cache at {path}: {error} Files inspected this time will be inspected and fingerprinted again on the next scan. Media is unaffected; please report this issue.",
+                path=str(path),
+                error=reason,
+            )
+        return (
+            *current,
+            HostMediaScanIssue(HostPath(path), detail, subject=CACHE_ISSUE_SUBJECT),
+        )
 
     def _scan_fingerprinter(self) -> _AcousticFingerprinter:
         if isinstance(self._fingerprinter, FpcalcFingerprinter):
@@ -1522,7 +1565,9 @@ class HostMediaScanner:
             self._cache_file.replace_bytes(_encode_cache(ordered, ordered_artwork))
             self._cache_revision = self._cache_file.revision()
             self._cache_dirty = False
-        except (OSError, StorageError, HostMediaScanError, ValueError):
+            self._cache_store_error = None
+        except (OSError, StorageError, HostMediaScanError, ValueError) as error:
+            self._cache_store_error = error
             logger.warning(
                 "Host Media Scan cache could not be updated",
                 exc_info=True,
