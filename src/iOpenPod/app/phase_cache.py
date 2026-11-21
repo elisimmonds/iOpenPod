@@ -38,14 +38,14 @@ def reuse_entry(
         entry.audio is None
         or entry.audio_path != str(audio_path)
         or entry.chart_path != str(chart_path)
-        or session.file_identity(audio_path) != entry.audio
+        or not _same_facts(session, session.file_identity(audio_path), entry.audio)
         or not session.exists(chart_path)
     ):
         return None
     chart_identity = session.file_identity(chart_path)
     if chart_identity.size != chart_size:
         return None
-    if entry.chart != chart_identity:
+    if entry.chart is None or not _same_facts(session, chart_identity, entry.chart):
         # Publication assigns the final inode/time. Verify only the small chart
         # once on the next save, then retain that published identity.
         snapshot = session.read_snapshot(chart_path, max_bytes=16 * 1024 * 1024)
@@ -59,8 +59,22 @@ def reuse_entry(
         observed = fingerprint_identity(snapshot.fingerprint)
         assert observed is not None
         chart_identity = observed
+    else:
+        # Keep the recorded identity so a new mount's inodes do not rewrite
+        # otherwise unchanged receipts.
+        chart_identity = entry.chart
     return PhaseCacheEntry(
         entry.provenance, str(audio_path), entry.audio, str(chart_path), chart_identity
+    )
+
+
+def _same_facts(
+    session: FilesystemSession, observed: FileIdentity, recorded: FileIdentity
+) -> bool:
+    # Omit st_dev and st_ino: FAT assigns inode numbers per mount, so they would
+    # discard every receipt on reconnection and rehash each Phase Track.
+    return observed.size == recorded.size and session.modified_time_matches(
+        observed.modified_ns, recorded.modified_ns
     )
 
 
