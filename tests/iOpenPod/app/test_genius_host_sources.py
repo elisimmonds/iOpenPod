@@ -405,3 +405,34 @@ def test_summary_log_counts_sources_cache_hits_and_fallbacks(
     skipped = summary(AtomicHostFile(tmp_path / "skip.json"), Decoder(), skip=True)
     assert skipped.startswith("Genius analysis skipped in ")
     assert "failed 0; not analyzed 3" in skipped
+
+
+def test_each_unavailable_track_is_logged_after_the_summary(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    _, session, snapshot = device(tmp_path, 2)
+    host = tmp_path / "original.flac"
+    host.write_bytes(b"original lossless audio")
+
+    def damaged() -> None:
+        raise GeniusAudioDecodeError("Damaged audio")
+
+    caplog.set_level(logging.INFO, logger="iOpenPod.app.genius_analysis")
+    result = GeniusAnalysisService(
+        AtomicHostFile(tmp_path / "profiles.json"),
+        Decoder(action=damaged),
+        profiler=_profile,
+    ).analyze(
+        snapshot,
+        session,
+        host_sources=(correlation(session, snapshot, host),),
+        checkpoint=checkpoint,
+    )
+    assert len(result.issues) == 2
+    summary, *unavailable = [r.getMessage() for r in caplog.records]
+    assert "Host fallbacks to device 1; failed 2; not analyzed 0" in summary
+    assert sorted(unavailable) == sorted(
+        f"Genius analysis unavailable for {track.title} (Track {track.track_id},"
+        f" {track.metadata.location}): Damaged audio"
+        for track in snapshot.tracks
+    )

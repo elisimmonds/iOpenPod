@@ -750,6 +750,14 @@ class GeniusAnalysisService:
             if resolved_outcome is None:
                 continue
             if isinstance(resolved_outcome, GeniusAnalysisIssue):
+                # Sync review shows only the first few; the log keeps every one.
+                _LOGGER.info(
+                    "Genius analysis unavailable for %s (Track %s, %s): %s",
+                    track.title,
+                    track.track_id,
+                    track.metadata.location,
+                    resolved_outcome.detail,
+                )
                 issues.append(resolved_outcome)
                 continue
             profiles[track.track_id] = resolved_outcome.profile
