@@ -5,11 +5,12 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-from collections import deque
+import time
+from collections import Counter, deque
 from concurrent.futures import FIRST_COMPLETED, Future, ThreadPoolExecutor, wait
 from contextlib import contextmanager, nullcontext
 from copy import copy
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from importlib import import_module
 from pathlib import PurePosixPath
 from threading import Event, Lock
@@ -56,6 +57,8 @@ if TYPE_CHECKING:
     from iPodDB.library import LibrarySnapshot, PreparedLyrics, Track
     from storage import FileFingerprint, FilesystemSession
 
+
+_LOGGER = logging.getLogger(__name__)
 
 GENIUS_SAMPLE_RATE_HZ = 22_050
 MAX_GENIUS_AUDIO_SECONDS = 15 * 60
@@ -343,6 +346,69 @@ class _Source:
             _validate_device(session, self.dependency)
 
 
+_SOURCE_KINDS = ("device", "correlated_host", "staged_host")
+
+
+def _source_kind(source: _Source) -> str:
+    if isinstance(source.path, DevicePath):
+        return "device"
+    return "correlated_host" if source.fallback is not None else "staged_host"
+
+
+def _source_size(source: _Source) -> int:
+    if source.host is not None:
+        return source.host.size_bytes
+    return source.dependency.identity.size if source.dependency is not None else 0
+
+
+@dataclass(slots=True)
+class _AnalysisTally:
+    """Diagnostic counts and read timings for one analysis; never authority."""
+
+    cached: Counter[str] = field(default_factory=Counter[str])
+    analyzed: Counter[str] = field(default_factory=Counter[str])
+    read_bytes: Counter[str] = field(default_factory=Counter[str])
+    read_seconds: dict[str, float] = field(
+        default_factory=lambda: dict.fromkeys(_SOURCE_KINDS, 0.0)
+    )
+    fallbacks: int = 0
+    failed: int = 0
+    _lock: Lock = field(default_factory=Lock)
+
+    def record_read(self, source: _Source, seconds: float) -> None:
+        kind = _source_kind(source)
+        with self._lock:
+            self.read_bytes[kind] += _source_size(source)
+            self.read_seconds[kind] += seconds
+
+    def summary(self, *, status: str, elapsed: float, tracks: int, workers: int) -> str:
+        def counts(values: Counter[str]) -> str:
+            return " ".join(f"{kind}={values[kind]}" for kind in _SOURCE_KINDS)
+
+        with self._lock:
+            reads = "; ".join(
+                f"{kind} read {self.read_bytes[kind] / 1e9:.2f} GB in "
+                f"{self.read_seconds[kind]:.1f} s"
+                + (
+                    f" ({self.read_bytes[kind] / 1e6 / self.read_seconds[kind]:.1f}"
+                    " MB/s per reader)"
+                    if self.read_seconds[kind] > 0
+                    else ""
+                )
+                for kind in _SOURCE_KINDS
+                if self.read_bytes[kind]
+            )
+            done = sum(self.cached.values()) + sum(self.analyzed.values())
+            return (
+                f"Genius analysis {status} in {elapsed:.1f} s with {workers} workers:"
+                f" {tracks} music Tracks; cached {counts(self.cached)};"
+                f" analyzed {counts(self.analyzed)}; Host fallbacks to device"
+                f" {self.fallbacks}; failed {self.failed};"
+                f" not analyzed {max(0, tracks - done - self.failed)}"
+                + (f"; {reads}" if reads else "")
+            )
+
+
 @dataclass(frozen=True, slots=True)
 class _AnalyzedTrack:
     source: _Source
@@ -440,6 +506,9 @@ class GeniusAnalysisService:
     ) -> GeniusAnalysisResult:
         checkpoint = _session_checkpoint(session, checkpoint)
         should_skip = skip_requested or (lambda: False)
+        started = time.monotonic()
+        tally = _AnalysisTally()
+        finished = False
         checkpoint()
         decoder = (
             self._decoder.for_analysis()
@@ -539,6 +608,10 @@ class GeniusAnalysisService:
                     pending.append((track, resolved))
                 else:
                     outcomes[track.track_id] = resolved
+                    if isinstance(resolved, _AnalyzedTrack):
+                        tally.cached[_source_kind(resolved.source)] += 1
+                    else:
+                        tally.failed += 1
             waiting = _AdmissionQueue(pending)
             device_read = Lock()
             # Insertion order is admission order, which progress reports as active.
@@ -607,6 +680,7 @@ class GeniusAnalysisService:
                                 worker_checkpoint,
                                 device_read,
                                 vocals,
+                                tally,
                             )
                             running[future] = (track, on_device)
                         if should_skip():
@@ -623,10 +697,14 @@ class GeniusAnalysisService:
                                 continue
                             checkpoint()
                             if isinstance(outcome, _Source):
+                                tally.fallbacks += 1
                                 waiting.retry_device(track, outcome)
                                 continue
                             outcomes[track.track_id] = outcome
-                            if isinstance(outcome, _AnalyzedTrack):
+                            if isinstance(outcome, GeniusAnalysisIssue):
+                                tally.failed += 1
+                            else:
+                                tally.analyzed[_source_kind(outcome.source)] += 1
                                 with self._cache_lock:
                                     self._cache.remember(
                                         outcome.source.key, outcome.profile
@@ -637,6 +715,7 @@ class GeniusAnalysisService:
                 except BaseException:
                     stopped.set()
                     raise
+            finished = True
         finally:
             # Successful earlier work survives a failed source. Cancellation is
             # still propagated; checkpointed cache writes never mask it.
@@ -644,7 +723,23 @@ class GeniusAnalysisService:
                 if vocals is not None:
                     vocals.close()
             finally:
-                save(force=True)
+                try:
+                    save(force=True)
+                finally:
+                    _LOGGER.info(
+                        tally.summary(
+                            status=(
+                                "stopped"
+                                if not finished
+                                else "skipped"
+                                if should_skip()
+                                else "finished"
+                            ),
+                            elapsed=time.monotonic() - started,
+                            tracks=len(tracks),
+                            workers=self._workers,
+                        )
+                    )
         profiles: dict[int, GeniusAudioProfile] = {}
         dependencies: dict[DevicePath, GeniusAnalysisDependency] = {}
         prepared_profiles: list[GeniusPreparedProfile] = []
@@ -804,6 +899,7 @@ class GeniusAnalysisService:
         checkpoint: Callable[[], None],
         device_read: Lock,
         vocals: GeniusVocalAnalyzer | None = None,
+        tally: _AnalysisTally | None = None,
     ) -> _AnalyzedTrack | _Source | GeniusAnalysisIssue:
         try:
             try:
@@ -818,12 +914,16 @@ class GeniusAnalysisService:
                     if isinstance(source.path, DevicePath)
                     else nullcontext()
                 ):
+                    # Time only the read and decode, not waiting for the slot.
+                    read_started = time.monotonic()
                     pcm = decoder.decode(
                         source.path,
                         input_suffix=source.input_suffix,
                         session=session,
                         checkpoint=checkpoint,
                     )
+                    if tally is not None:
+                        tally.record_read(source, time.monotonic() - read_started)
                 if len(pcm) > _MAX_PCM_BYTES:
                     raise GeniusAudioDecodeError("Decoded audio exceeds its byte limit")
                 profile = self._profiler(
@@ -835,7 +935,7 @@ class GeniusAnalysisService:
                             profile, vocals=vocals.analyze(pcm, checkpoint=checkpoint)
                         )
                     except GeniusVocalAnalysisError:
-                        logging.getLogger(__name__).warning(
+                        _LOGGER.warning(
                             "Genius vocal evidence unavailable for Track %s",
                             track.track_id,
                             exc_info=True,
