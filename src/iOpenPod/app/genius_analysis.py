@@ -759,6 +759,10 @@ class GeniusAnalysisService:
                     host is not None
                     and host.path.path.suffix.casefold() in _INPUT_FORMATS
                 ):
+                    # Like _device_key, omit st_dev and st_ino: network mounts
+                    # receive a new st_dev per mount, and servers may not keep
+                    # file IDs. source.validate still pins the full identity
+                    # within this analysis.
                     source = _Source(
                         host.path,
                         _key(
@@ -767,8 +771,6 @@ class GeniusAnalysisService:
                                 str(host.path),
                                 host.size_bytes,
                                 host.modified_ns,
-                                host.device,
-                                host.inode,
                             )
                         ),
                         host.path.path.suffix,

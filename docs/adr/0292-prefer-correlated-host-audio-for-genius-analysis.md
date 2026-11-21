@@ -43,3 +43,20 @@ outside Sync, only the committed helper is consulted. A valid warm profile still
 avoids decoding. Physical speedup depends on Host availability and compute cost;
 virtual tests verify the selected transport, six-worker admission, cache reuse,
 fallback, and publication-time source checks without claiming hardware timings.
+
+## Amendment: key correlated Host profiles by persistent facts (2026-11-20)
+
+A correlated Host profile's cache key uses the Host path, size, and modification
+time. It omits `st_dev` and `st_ino`. Network filesystems receive a new device
+number when mounted (a Linux CIFS share is an anonymous `0:N` device allocated in
+mount order), and not every server keeps stable file IDs, so keys that included
+them could discard every correlated profile after a remount or restart and reread
+the whole Host library. ADR-0179's device-profile amendment made the same choice
+for FAT iPods.
+
+Within one analysis, the observed Host file is still validated against its
+complete identity, including device and inode, before and after decoding and
+again through publication. Path, size, and modification time are the same facts
+the correlation itself requires, so the key does not accept evidence the
+correlation would reject. Existing identity-bound entries become unused and age
+out under the normal bounds.
