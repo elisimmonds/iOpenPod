@@ -71,3 +71,21 @@ file reads, 192 metadata checks, zero audio/chart-content reads and zero writes.
 The private harness and raw results are under `.scratch/phase-cache/`. This measures
 warm-cache preparation through actual Storage; it excludes initial migration,
 whole-Library save time, cold filesystem-cache behavior and physical gameplay.
+
+## Amendment: compare receipts by persistent file facts (2026-11-20)
+
+A receipt matches its audio or chart when the size and the filesystem-aware
+modification time agree. It no longer compares the host-assigned device number
+and inode. FAT assigns inode numbers per mount: after remounting an iPod classic,
+every Music file observed a new inode while its size and modification time were
+unchanged. Receipts that required the recorded inode therefore missed after every
+reconnection, and the next save rehashed each Phase Track over USB and reread
+each chart. The measurements above ran within one mount, so they did not observe
+this. ADR-0179's device-profile amendment made the same choice for Genius.
+
+When the facts match, the recorded identity is retained so that a new mount does
+not rewrite otherwise unchanged receipts. A chart without a recorded identity, or
+whose facts differ, is still verified against its content provenance once. Like
+the Sync helper, size and modification time are a fast discriminator rather than
+hostile-change detection; changed facts still fall back to content verification.
+Existing receipts remain valid, and the receipt format is unchanged.

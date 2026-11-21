@@ -1,5 +1,6 @@
 """Incremental Phase preparation across saves and Filesystem Sessions."""
 
+import shutil
 from collections.abc import Callable
 from dataclasses import replace
 from hashlib import sha256
@@ -46,6 +47,44 @@ def commit(session: FilesystemSession, publication: PhasePublication) -> None:
     )
 
 
+def forbid_phase_payload_reads(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fail on any audio or chart read, hash, capture, or analysis."""
+    original_read = FilesystemSession.read_snapshot
+    original_hash = FilesystemSession.fingerprint
+    allowed = {CACHE_PATH, VALIDATION_PATH, INDEX_PATH}
+
+    def read(
+        session: FilesystemSession, path: DevicePath, *, max_bytes: int | None = None
+    ) -> FileSnapshot:
+        assert (
+            path in allowed
+            or path.name == "Manifest.plist"
+            or str(path).startswith(".iopenpod-recovery/")
+        ), f"Unexpected Phase payload read: {path}"
+        return original_read(session, path, max_bytes=max_bytes)
+
+    def fingerprint(
+        session: FilesystemSession,
+        path: DevicePath,
+        *,
+        checkpoint: Callable[[], None] | None = None,
+    ) -> FileFingerprint:
+        assert (
+            path in allowed
+            or path.name == "Manifest.plist"
+            or str(path).startswith(".iopenpod-recovery/")
+        ), f"Unexpected Phase dependency hash: {path}"
+        return original_hash(session, path, checkpoint=checkpoint)
+
+    def unexpected(*args: object, **kwargs: object) -> None:
+        pytest.fail("Unchanged Phase inputs started capture or analysis")
+
+    monkeypatch.setattr(FilesystemSession, "read_snapshot", read)
+    monkeypatch.setattr(FilesystemSession, "fingerprint", fingerprint)
+    monkeypatch.setattr(FilesystemSession, "copy_to_host", unexpected)
+    monkeypatch.setattr(StubPhaseAnalysis, "analyze", unexpected)
+
+
 @pytest.mark.parametrize(
     "change", ["unrelated", "rename", "reorder", "remove", "reselect"]
 )
@@ -89,40 +128,7 @@ def test_settled_cache_needs_no_audio_or_chart_reads_even_after_reconnect(
         else:
             playlist = replace(playlist, playlist_id=202)
         desired = replace(original, playlists=(playlist,))
-    original_read = FilesystemSession.read_snapshot
-    original_hash = FilesystemSession.fingerprint
-    allowed = {CACHE_PATH, VALIDATION_PATH, INDEX_PATH}
-
-    def read(
-        session: FilesystemSession, path: DevicePath, *, max_bytes: int | None = None
-    ) -> FileSnapshot:
-        assert (
-            path in allowed
-            or path.name == "Manifest.plist"
-            or str(path).startswith(".iopenpod-recovery/")
-        ), f"Unexpected Phase payload read: {path}"
-        return original_read(session, path, max_bytes=max_bytes)
-
-    def fingerprint(
-        session: FilesystemSession,
-        path: DevicePath,
-        *,
-        checkpoint: Callable[[], None] | None = None,
-    ) -> FileFingerprint:
-        assert (
-            path in allowed
-            or path.name == "Manifest.plist"
-            or str(path).startswith(".iopenpod-recovery/")
-        ), f"Unexpected Phase dependency hash: {path}"
-        return original_hash(session, path, checkpoint=checkpoint)
-
-    def unexpected(*args: object, **kwargs: object) -> None:
-        pytest.fail("Unchanged Phase inputs started capture or analysis")
-
-    monkeypatch.setattr(FilesystemSession, "read_snapshot", read)
-    monkeypatch.setattr(FilesystemSession, "fingerprint", fingerprint)
-    monkeypatch.setattr(FilesystemSession, "copy_to_host", unexpected)
-    monkeypatch.setattr(StubPhaseAnalysis, "analyze", unexpected)
+    forbid_phase_payload_reads(monkeypatch)
     events: list[object] = []
     with storage.open_session(volume, access=AccessMode.READ_WRITE) as session:
         result = prepare_phase(
@@ -147,6 +153,37 @@ def test_settled_cache_needs_no_audio_or_chart_reads_even_after_reconnect(
                 for track_id in desired.playlists[0].track_ids
             )
             commit(session, result)
+
+
+def test_settled_cache_survives_reconnection_with_new_inodes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    storage, original = device(tmp_path, 3)
+    analyzer = StubPhaseAnalysis()
+    volume = storage.discover().volumes[0]
+    with storage.open_session(volume, access=AccessMode.READ_WRITE) as session:
+        commit(
+            session,
+            prepare_phase(session, LibrarySnapshot(), original, analyzer=analyzer),
+        )
+        commit(session, prepare_phase(session, original, original, analyzer=analyzer))
+    # FAT assigns inode numbers per mount. Model a reconnection that keeps every
+    # file's bytes, size, and modification time but observes new inodes.
+    for path in [p for p in tmp_path.rglob("*") if p.is_file()]:
+        before = path.stat()
+        replacement = path.with_name(f"{path.name}.inode")
+        shutil.copy2(path, replacement)
+        replacement.replace(path)
+        assert path.stat().st_ino != before.st_ino
+        assert path.stat().st_mtime_ns == before.st_mtime_ns
+    reconnected = VirtualStoragePlatform()
+    reconnected.add_volume(tmp_path)
+    storage = Storage(reconnected)
+    forbid_phase_payload_reads(monkeypatch)
+    with storage.open_session(
+        storage.discover().volumes[0], access=AccessMode.READ_WRITE
+    ) as session:
+        assert not prepare_phase(session, original, original, analyzer=analyzer).writes
 
 
 @pytest.mark.parametrize(
