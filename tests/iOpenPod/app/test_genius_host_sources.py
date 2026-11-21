@@ -1,5 +1,6 @@
 """Correlated Host audio avoids device transport without weakening source checks."""
 
+import shutil
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
@@ -163,6 +164,34 @@ def test_correlated_original_uses_host_extension_and_persistent_profile_cache(
         snapshot, session, host_sources=sources, checkpoint=checkpoint
     )
     assert decoder.calls[-1] == (DevicePath("iPod_Control/Music/F00/song.mp3"), ".mp3")
+
+
+def test_correlated_profile_survives_new_host_inode(tmp_path: Path) -> None:
+    _, session, snapshot = device(tmp_path)
+    host = tmp_path / "original.flac"
+    host.write_bytes(b"original lossless audio")
+    source = correlation(session, snapshot, host)
+    cache = AtomicHostFile(tmp_path / "profiles.json")
+    decoder = Decoder()
+    first = GeniusAnalysisService(cache, decoder, profiler=_profile).analyze(
+        snapshot, session, host_sources=(source,), checkpoint=checkpoint
+    )
+    # Network mounts get a new st_dev, and some servers new st_ino, per mount.
+    # Model that with a copy that keeps bytes, size, and modification time.
+    original = host.stat()
+    replacement = tmp_path / "original.tmp"
+    shutil.copy2(host, replacement)
+    replacement.replace(host)
+    assert host.stat().st_ino != original.st_ino
+    assert host.stat().st_mtime_ns == original.st_mtime_ns
+    second = GeniusAnalysisService(cache, decoder, profiler=_profile).analyze(
+        snapshot, session, host_sources=(source,), checkpoint=checkpoint
+    )
+    assert decoder.calls == [(HostPath(host), ".flac")]
+    assert second.profiles == first.profiles
+    assert second.host_dependencies == (
+        GeniusHostDependency(1, LocalHostFile.observe(HostPath(host))),
+    )
 
 
 @pytest.mark.parametrize(
